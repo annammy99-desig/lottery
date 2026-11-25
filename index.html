@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>초등학교 전교 임원 선거 기호 추첨기</title>
+    <!-- Tailwind CSS 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 효과음을 위한 Tone.js 로드 (외부 오디오 파일 없이 브라우저 합성음 사용) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- 한글 폰트와 디자인을 그대로 PDF 파일로 저장하기 위한 html2canvas & jsPDF 로드 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- 초등학교 선거 포스터 분위기에 어울리는 Google Fonts (Jua & Noto Sans KR) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Jua', 'sans-serif'],
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 3.5s ease-in-out infinite',
+                        'pop-in': 'popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                        'shuffle-pulse': 'shufflePulse 0.18s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-6px)' },
+                        },
+                        popIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.8) translateY(14px)' },
+                            '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+                        },
+                        shufflePulse: {
+                            '0%': { transform: 'scale(0.97)' },
+                            '100%': { transform: 'scale(1.03)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-sky-50 via-amber-50/70 to-emerald-50 font-sans text-slate-800 selection:bg-amber-200 selection:text-slate-900 overflow-x-hidden">
+
+    <!-- 축하 색종이(Confetti) 효과를 위한 전체 화면 반응형 캔버스 -->
+    <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full"></canvas>
+
+    <!-- 상단 장식용 선거 깃발 배너 (인쇄 시 숨김) -->
+    <div class="w-full h-3 bg-gradient-to-r from-sky-400 via-amber-400 via-rose-400 to-emerald-400 print:hidden"></div>
+
+    <!-- 메인 컨테이너 -->
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-10">
+
+        <!-- 헤더 영역: 초등학교 선거 일러스트 및 타이틀 -->
+        <header class="bg-white/90 backdrop-blur-md rounded-3xl shadow-lg shadow-sky-900/5 border-2 border-white p-5 sm:p-7 mb-6 relative overflow-hidden">
+            <!-- 배경 은은한 별/원 장식 -->
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-amber-200/40 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-sky-200/40 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+                <div class="flex items-center gap-4 text-center md:text-left">
+                    <!-- 투표함 캐릭터 SVG 일러스트 -->
+                    <div class="shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-amber-100 to-sky-100 rounded-2xl flex items-center justify-center shadow-inner border-2 border-amber-200/80 animate-float">
+                        <svg viewBox="0 0 80 80" class="w-14 h-14 sm:w-16 sm:h-16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="투표함 일러스트">
+                            <!-- 투표 용지 -->
+                            <rect x="26" y="8" width="28" height="26" rx="4" fill="#FFFFFF" stroke="#0284C7" stroke-width="3"/>
+                            <!-- 기표 도장 마크 (사람 인/복) -->
+                            <circle cx="40" cy="19" r="6" stroke="#EF4444" stroke-width="2.5"/>
+                            <path d="M40 15V23M37 21L40 18L43 21" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <!-- 투표함 상단 뚜껑 -->
+                            <rect x="12" y="28" width="56" height="10" rx="4" fill="#38BDF8" stroke="#0369A1" stroke-width="3"/>
+                            <!-- 투표구 슬롯 -->
+                            <rect x="24" y="31.5" width="32" height="3.5" rx="1.75" fill="#0C4A6E"/>
+                            <!-- 투표함 몸체 -->
+                            <rect x="16" y="38" width="48" height="34" rx="6" fill="#FDE047" stroke="#CA8A04" stroke-width="3"/>
+                            <!-- 귀여운 눈과 미소 -->
+                            <circle cx="31" cy="52" r="2.8" fill="#1E293B"/>
+                            <circle cx="49" cy="52" r="2.8" fill="#1E293B"/>
+                            <circle cx="25" cy="56" r="2.5" fill="#FB7185" fill-opacity="0.6"/>
+                            <circle cx="55" cy="56" r="2.5" fill="#FB7185" fill-opacity="0.6"/>
+                            <path d="M35 56C36.8 59.5 43.2 59.5 45 56" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs sm:text-sm font-bold mb-1.5">
+                            <span>✨</span>
+                            <span>우리 학교 공정한 민주주의의 시작</span>
+                        </div>
+                        <h1 class="font-display text-2xl sm:text-4xl text-slate-800 tracking-wide">
+                            전교 임원 선거 기호 추첨
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- 우측 유틸리티 버튼 (효과음 토글 & 전체 결과 모아보기) -->
+                <div class="flex flex-wrap items-center justify-center gap-2 print:hidden">
+                    <button id="soundToggleBtn" type="button" onclick="toggleSound()"
+                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-all active:scale-95 border border-slate-200"
+                        title="효과음 켜기/끄기">
+                        <span id="soundIcon">🔊</span>
+                        <span id="soundLabel">효과음 켜짐</span>
+                    </button>
+                    <button id="summaryModalBtn" type="button" onclick="openSummaryModal()"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-sm transition-all active:scale-95 border border-indigo-200">
+                        <span>📋</span>
+                        <span>전체 결과표</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 전교 회장 / 전교 부회장 선택 탭 -->
+        <nav aria-label="선거 부문 선택" class="grid grid-cols-2 gap-3 sm:gap-4 mb-6 print:hidden">
+            <!-- 전교 회장 후보 탭 -->
+            <button id="tab-president" type="button" onclick="switchTab('president')"
+                class="group relative flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-3xl border-2 transition-all duration-200 cursor-pointer focus:outline-none">
+                <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 bg-sky-100 text-sky-600 shadow-sm">
+                    <!-- 왕관 SVG 아이콘 -->
+                    <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5ZM19 19C19 19.5523 18.5523 20 18 20H6C5.44772 20 5 19.5523 5 19V18H19V19Z"/>
+                    </svg>
+                </div>
+                <div class="text-center sm:text-left">
+                    <div class="font-display text-lg sm:text-2xl leading-tight">전교 회장 후보</div>
+                    <div id="tab-status-president" class="text-xs sm:text-sm font-medium mt-0.5 opacity-80">후보 0명 · 입력 중</div>
+                </div>
+            </button>
+
+            <!-- 전교 부회장 후보 탭 -->
+            <button id="tab-vicePresident" type="button" onclick="switchTab('vicePresident')"
+                class="group relative flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-3xl border-2 transition-all duration-200 cursor-pointer focus:outline-none">
+                <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 bg-emerald-100 text-emerald-600 shadow-sm">
+                    <!-- 별 메달 SVG 아이콘 -->
+                    <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2L14.8 8.2L21.5 9L16.5 13.5L17.9 20.2L12 16.8L6.1 20.2L7.5 13.5L2.5 9L9.2 8.2L12 2Z"/>
+                    </svg>
+                </div>
+                <div class="text-center sm:text-left">
+                    <div class="font-display text-lg sm:text-2xl leading-tight">전교 부회장 후보</div>
+                    <div id="tab-status-vicePresident" class="text-xs sm:text-sm font-medium mt-0.5 opacity-80">후보 0명 · 입력 중</div>
+                </div>
+            </button>
+        </nav>
+
+        <!-- 단계 표시기 (Step Indicator) -->
+        <div class="flex items-center justify-center gap-2 sm:gap-4 mb-6 print:hidden">
+            <div id="step-badge-1" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all">
+                <span class="w-5 h-5 rounded-full flex items-center justify-center text-xs">1</span>
+                <span>후보 입력</span>
+            </div>
+            <div class="w-6 sm:w-10 h-1 rounded-full bg-slate-200"></div>
+            <div id="step-badge-2" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all">
+                <span class="w-5 h-5 rounded-full flex items-center justify-center text-xs">2</span>
+                <span>입력 완료</span>
+            </div>
+            <div class="w-6 sm:w-10 h-1 rounded-full bg-slate-200"></div>
+            <div id="step-badge-3" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all">
+                <span class="w-5 h-5 rounded-full flex items-center justify-center text-xs">3</span>
+                <span>기호 확정</span>
+            </div>
+        </div>
+
+        <!-- 메인 콘텐츠 카드 영역 -->
+        <main id="mainCard" class="bg-white rounded-3xl shadow-xl shadow-slate-900/5 border-2 border-slate-100 p-5 sm:p-8 transition-all">
+
+            <!-- 현재 선택된 선거 부문 상단 배너 -->
+            <div id="roleBanner" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 mb-6 border-b-2 border-dashed border-slate-100">
+                <div class="flex items-center gap-3">
+                    <span id="roleEmoji" class="text-3xl sm:text-4xl">🌟</span>
+                    <div>
+                        <h2 id="roleTitle" class="font-display text-2xl sm:text-3xl text-slate-800">전교 부회장 후보 기호 추첨</h2>
+                        <p id="roleSubtitle" class="text-sm text-slate-500 font-medium">후보 학생 이름을 모두 입력한 뒤 '입력 완료'를 눌러주세요.</p>
+                    </div>
+                </div>
+                <div class="inline-flex items-center gap-2 self-start sm:self-center px-4 py-2 rounded-2xl bg-slate-100 text-slate-700 font-bold text-sm">
+                    <span>등록 후보</span>
+                    <span id="candidateCountBadge" class="px-2.5 py-0.5 rounded-xl bg-white text-slate-900 shadow-sm text-base">0명</span>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- STEP 1: 후보 이름 입력 화면                               -->
+            <!-- ========================================================= -->
+            <section id="section-input" class="space-y-6">
+                <!-- 이름 입력 폼 -->
+                <form id="candidateForm" onsubmit="handleAddCandidate(event)" class="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/80">
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        <!-- 선택 입력: 학년-반 -->
+                        <div class="sm:col-span-3">
+                            <label for="classInput" class="block text-xs font-bold text-slate-500 mb-1.5 ml-1">학년-반 (선택)</label>
+                            <input type="text" id="classInput" maxlength="10" placeholder="예: 6-1"
+                                class="w-full px-4 py-3.5 rounded-2xl bg-white border-2 border-slate-200 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none font-bold text-slate-700 transition-all placeholder:font-normal placeholder:text-slate-400">
+                        </div>
+                        <!-- 필수 입력: 후보 학생 이름 -->
+                        <div class="sm:col-span-6">
+                            <label for="nameInput" class="block text-xs font-bold text-slate-600 mb-1.5 ml-1">후보 학생 이름 <span class="text-rose-500">*</span></label>
+                            <input type="text" id="nameInput" maxlength="20" placeholder="학생 이름을 입력하세요 (예: 김하늘)" autocomplete="off"
+                                class="w-full px-4 py-3.5 rounded-2xl bg-white border-2 border-slate-200 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none font-bold text-slate-800 text-base transition-all placeholder:font-normal placeholder:text-slate-400">
+                        </div>
+                        <!-- 추가 버튼 -->
+                        <div class="sm:col-span-3 flex items-end">
+                            <button type="submit" id="addCandidateBtn"
+                                class="w-full py-3.5 px-5 rounded-2xl font-display text-lg text-white shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-1.5">
+                                <span>➕</span>
+                                <span>후보 추가</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 여러 명 한꺼번에 입력하기 토글 안내 -->
+                    <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 px-1">
+                        <span>💡 이름을 입력하고 <strong>Enter(엔터)</strong>를 누르면 빠르게 추가할 수 있어요.</span>
+                        <button type="button" onclick="toggleBulkInput()" class="font-bold text-sky-600 hover:text-sky-700 underline underline-offset-2">
+                            여러 명 한 번에 붙여넣기
+                        </button>
+                    </div>
+
+                    <!-- 일괄 입력 확장 영역 -->
+                    <div id="bulkInputBox" class="hidden mt-4 pt-4 border-t border-slate-200">
+                        <label for="bulkTextarea" class="block text-xs font-bold text-slate-600 mb-1.5">
+                            후보 이름을 쉼표(,) 또는 줄바꿈으로 구분해서 붙여넣으세요 (예: 김하늘, 이도윤, 박서연)
+                        </label>
+                        <textarea id="bulkTextarea" rows="3" placeholder="김하늘&#10;이도윤&#10;박서연"
+                            class="w-full p-3.5 rounded-2xl bg-white border-2 border-slate-200 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-sm font-medium"></textarea>
+                        <div class="mt-2.5 flex justify-end gap-2">
+                            <button type="button" onclick="toggleBulkInput()" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition-all">닫기</button>
+                            <button type="button" onclick="handleBulkAdd()" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition-all shadow-sm">일괄 추가하기</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- 등록된 후보 목록 영역 -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                            <span>📝</span>
+                            <span>입력된 후보 명단</span>
+                        </h3>
+                        <button id="clearAllInputBtn" type="button" onclick="confirmClearCandidates()"
+                            class="hidden text-xs font-bold text-rose-500 hover:text-rose-600 px-2.5 py-1 rounded-lg hover:bg-rose-50 transition-all">
+                            전체 지우기
+                        </button>
+                    </div>
+
+                    <!-- 비어 있을 때 안내 -->
+                    <div id="emptyCandidateState" class="py-12 px-4 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50 text-center">
+                        <div class="text-5xl mb-3">🎒</div>
+                        <p class="font-display text-xl text-slate-600 mb-1">아직 등록된 후보가 없어요!</p>
+                        <p class="text-sm text-slate-400">위 입력창에 출마한 학생들의 이름을 차례대로 입력해 주세요.</p>
+                    </div>
+
+                    <!-- 후보 카드 그리드 -->
+                    <ul id="candidateList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></ul>
+                </div>
+
+                <!-- 하단 '입력 완료' 버튼 영역 -->
+                <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p id="completeHint" class="text-sm text-slate-500 font-medium text-center sm:text-left">
+                        모든 후보 이름을 넣으셨다면 <strong>입력 완료</strong> 버튼을 눌러주세요.
+                    </p>
+                    <button id="completeInputBtn" type="button" onclick="handleCompleteInput()"
+                        class="w-full sm:w-auto px-8 py-4 rounded-2xl font-display text-xl text-white bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 shadow-lg shadow-orange-500/25 hover:shadow-xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2">
+                        <span>✅</span>
+                        <span>입력 완료</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- STEP 2: 입력 완료 및 추첨 대기 화면                       -->
+            <!-- ========================================================= -->
+            <section id="section-ready" class="hidden space-y-6">
+                <!-- 확인 안내 배너 -->
+                <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 text-center sm:text-left">
+                        <span class="text-3xl">📣</span>
+                        <div>
+                            <h3 class="font-display text-xl text-amber-900">후보 명단 입력이 완료되었습니다!</h3>
+                            <p class="text-sm text-amber-800/90 font-medium">빠진 학생이나 오타가 없는지 함께 확인한 뒤, <strong>기호 추첨</strong>을 눌러주세요.</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="handleEditCandidates()"
+                        class="shrink-0 px-4 py-2.5 rounded-xl bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-sm transition-all active:scale-95">
+                        ✏️ 후보 수정하기
+                    </button>
+                </div>
+
+                <!-- 확정된 후보 명단 미리보기 -->
+                <div id="readyCandidateGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+
+                <!-- 중앙 대형 '기호 추첨' 버튼 -->
+                <div class="py-6 flex flex-col items-center justify-center text-center bg-gradient-to-b from-slate-50 to-sky-50/60 rounded-3xl border-2 border-dashed border-sky-200 px-4">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-sky-700 text-xs font-bold shadow-sm border border-sky-100 mb-4">
+                        <span>🛡️</span>
+                        <span>편향 없는 암호학적 무작위 추첨 (공정성 100%)</span>
+                    </div>
+                    <button id="startDrawBtn" type="button" onclick="startFairDraw()"
+                        class="group relative px-10 sm:px-14 py-5 rounded-3xl font-display text-2xl sm:text-3xl text-white bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-600 shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-3">
+                        <span class="text-3xl sm:text-4xl group-hover:rotate-12 transition-transform">🎲</span>
+                        <span>기호 추첨</span>
+                    </button>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-3 font-medium">버튼을 누르면 모든 후보의 기호가 한꺼번에 공정하게 추첨됩니다!</p>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- 추첨 진행 중(애니메이션) 화면                             -->
+            <!-- ========================================================= -->
+            <section id="section-drawing" class="hidden py-10 space-y-6 text-center">
+                <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-amber-100 text-amber-800 font-display text-xl animate-bounce">
+                    <span>🥁</span>
+                    <span>두근두근! 공정하게 기호를 추첨하고 있어요...</span>
+                </div>
+                <div id="drawingGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4"></div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- STEP 3: 기호 추첨 결과 한눈에 보기 화면                   -->
+            <!-- ========================================================= -->
+            <section id="section-result" class="hidden space-y-6">
+                <!-- 결과 축하 헤더 -->
+                <div class="bg-gradient-to-r from-amber-100/80 via-yellow-50 to-sky-100/80 border-2 border-amber-200/80 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 text-center sm:text-left">
+                        <span class="text-4xl">🎉</span>
+                        <div>
+                            <h3 id="resultHeading" class="font-display text-2xl sm:text-3xl text-slate-800">기호 추첨 결과 발표!</h3>
+                            <p id="drawTimestamp" class="text-xs sm:text-sm text-slate-600 font-medium mt-0.5"></p>
+                        </div>
+                    </div>
+                    <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/90 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-sm">
+                        <span>✔️</span>
+                        <span>공정 추첨 완료</span>
+                    </div>
+                </div>
+
+                <!-- 전체 기호 결과 카드 그리드 (한눈에 보기 최적화) -->
+                <div id="resultGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+                <!-- 하단 액션 버튼 (복사, 인쇄, 다시 추첨, 수정) -->
+                <div class="pt-5 border-t-2 border-slate-100 flex flex-wrap items-center justify-between gap-3 print:hidden">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" onclick="copyCurrentResults()"
+                            class="inline-flex items-center gap-1.5 px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-all active:scale-95">
+                            <span>📋</span>
+                            <span>결과 텍스트 복사</span>
+                        </button>
+                        <button id="downloadPdfBtn" type="button" onclick="downloadCurrentResultPDF()"
+                            class="inline-flex items-center gap-1.5 px-4 py-3 rounded-2xl bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold text-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-wait">
+                            <span>📄</span>
+                            <span id="downloadPdfBtnLabel">결과표 인쇄 (PDF)</span>
+                        </button>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" onclick="confirmRedraw()"
+                            class="inline-flex items-center gap-1.5 px-4 py-3 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-sm transition-all active:scale-95">
+                            <span>🔄</span>
+                            <span>다시 추첨하기</span>
+                        </button>
+                        <button type="button" onclick="confirmBackToEdit()"
+                            class="inline-flex items-center gap-1.5 px-4 py-3 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-sm transition-all active:scale-95">
+                            <span>✏️</span>
+                            <span>후보 명단 수정</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 공정성 안내 푸터 -->
+        <footer class="mt-6 text-center text-xs sm:text-sm text-slate-500 font-medium print:hidden">
+            <p>본 추첨기는 브라우저의 암호학적 난수 생성기(<code class="bg-white/80 px-1.5 py-0.5 rounded text-slate-600">Web Crypto API</code>)와 Fisher-Yates 알고리즘을 사용하여 모든 후보에게 동일한 확률을 보장합니다.</p>
+        </footer>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 커스텀 확인 모달 (alert / confirm 대신 사용)              -->
+    <!-- ========================================================= -->
+    <div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-pop-in border-2 border-slate-100">
+            <div class="text-center">
+                <div id="confirmModalIcon" class="text-4xl mb-3">🤔</div>
+                <h3 id="confirmModalTitle" class="font-display text-2xl text-slate-800 mb-2">확인해 주세요</h3>
+                <p id="confirmModalMessage" class="text-sm text-slate-600 leading-relaxed mb-6"></p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button type="button" onclick="closeConfirmModal()"
+                    class="py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-all active:scale-95">
+                    취소
+                </button>
+                <button id="confirmModalOkBtn" type="button"
+                    class="py-3 px-4 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm transition-all shadow-md active:scale-95">
+                    확인
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 전체 결과 모아보기 모달 (전교 회장 + 전교 부회장 한눈에)  -->
+    <!-- ========================================================= -->
+    <div id="summaryModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[88vh] flex flex-col overflow-hidden animate-pop-in border-2 border-slate-100">
+            <div class="p-5 sm:p-6 bg-gradient-to-r from-sky-50 to-emerald-50 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-3xl">🏆</span>
+                    <div>
+                        <h3 class="font-display text-2xl text-slate-800">전교 임원 선거 전체 기호표</h3>
+                        <p class="text-xs sm:text-sm text-slate-500 font-medium">전교 회장과 전교 부회장 추첨 결과를 한 번에 확인하세요.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSummaryModal()"
+                    class="w-10 h-10 rounded-full bg-white hover:bg-slate-100 text-slate-500 font-bold flex items-center justify-center shadow-sm border border-slate-200 transition-all">
+                    ✕
+                </button>
+            </div>
+            <div id="summaryModalBody" class="p-5 sm:p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- JS로 동적 렌더링 -->
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-end gap-2">
+                <button type="button" onclick="copyAllSummaryResults()"
+                    class="px-4 py-2.5 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-sm transition-all shadow-sm active:scale-95">
+                    📋 전체 결과 복사
+                </button>
+                <button id="downloadAllPdfBtn" type="button" onclick="downloadAllSummaryPDF()"
+                    class="px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-wait">
+                    📄 전체 결과표 PDF 저장
+                </button>
+                <button type="button" onclick="closeSummaryModal()"
+                    class="px-5 py-2.5 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm transition-all">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스트 알림 (화면 하단 중앙) -->
+    <div id="toastContainer" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2 w-max max-w-[92vw]"></div>
+
+    <script>
+        /**
+         * =====================================================================
+         * 1. 앱 상태 관리 (State)
+         * 전교 회장(president)과 전교 부회장(vicePresident) 데이터를 독립적으로 관리
+         * =====================================================================
+         */
+        const ROLE_CONFIG = {
+            president: {
+                key: 'president',
+                label: '전교 회장 후보',
+                shortLabel: '전교 회장',
+                emoji: '👑',
+                accentBg: 'bg-sky-500 hover:bg-sky-600',
+                tabActiveClasses: 'bg-sky-500 text-white border-sky-600 shadow-lg shadow-sky-500/25 ring-4 ring-sky-200/70',
+                tabInactiveClasses: 'bg-white/90 text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-sky-50/50',
+                stepActiveBg: 'bg-sky-500 text-white shadow-sm',
+                stepBadgeNumBg: 'bg-white text-sky-600'
+            },
+            vicePresident: {
+                key: 'vicePresident',
+                label: '전교 부회장 후보',
+                shortLabel: '전교 부회장',
+                emoji: '🌟',
+                accentBg: 'bg-emerald-500 hover:bg-emerald-600',
+                tabActiveClasses: 'bg-emerald-500 text-white border-emerald-600 shadow-lg shadow-emerald-500/25 ring-4 ring-emerald-200/70',
+                tabInactiveClasses: 'bg-white/90 text-slate-700 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50',
+                stepActiveBg: 'bg-emerald-500 text-white shadow-sm',
+                stepBadgeNumBg: 'bg-white text-emerald-600'
+            }
+        };
+
+        // 기호별 밝고 구분이 잘 되는 초등학교 선거 포스터 색상 팔레트
+        const BALLOT_PALETTE = [
+            { bg: 'bg-rose-500', soft: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600', ring: 'ring-rose-200' },
+            { bg: 'bg-sky-500', soft: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600', ring: 'ring-sky-200' },
+            { bg: 'bg-amber-500', soft: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', ring: 'ring-amber-200' },
+            { bg: 'bg-emerald-500', soft: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600', ring: 'ring-emerald-200' },
+            { bg: 'bg-violet-500', soft: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-600', ring: 'ring-violet-200' },
+            { bg: 'bg-orange-500', soft: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', ring: 'ring-orange-200' },
+            { bg: 'bg-teal-500', soft: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-600', ring: 'ring-teal-200' },
+            { bg: 'bg-pink-500', soft: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-600', ring: 'ring-pink-200' },
+            { bg: 'bg-indigo-500', soft: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-600', ring: 'ring-indigo-200' },
+            { bg: 'bg-lime-600', soft: 'bg-lime-50', border: 'border-lime-200', text: 'text-lime-700', ring: 'ring-lime-200' }
+        ];
+
+        // 앱 전역 상태 (기본 탭: 전교 부회장 후보로 시작, 언제든 전교 회장 탭 전환 가능)
+        const appState = {
+            activeTab: 'vicePresident',
+            soundEnabled: true,
+            isDrawing: false,
+            roles: {
+                president: {
+                    phase: 'input', // 'input' | 'ready' | 'result'
+                    candidates: [], // { id, name, classInfo }
+                    results: [],    // { ballotNumber, name, classInfo }
+                    drawnAt: null
+                },
+                vicePresident: {
+                    phase: 'input',
+                    candidates: [],
+                    results: [],
+                    drawnAt: null
+                }
+            }
+        };
+
+        let pendingConfirmAction = null;
+        let drawingIntervalId = null;
+
+        /**
+         * =====================================================================
+         * 2. 사운드 엔진 (Tone.js 기반 브라우저 합성 효과음)
+         * =====================================================================
+         */
+        function playSound(type) {
+            if (!appState.soundEnabled) return;
+            try {
+                if (typeof Tone === 'undefined') return;
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+
+                if (type === 'add') {
+                    // 경쾌한 방울음
+                    const synth = new Tone.Synth({
+                        oscillator: { type: 'triangle' },
+                        envelope: { attack: 0.01, decay: 0.12, sustain: 0, release: 0.1 }
+                    }).toDestination();
+                    synth.volume.value = -8;
+                    synth.triggerAttackRelease('E5', '16n');
+                } else if (type === 'complete') {
+                    // 입력 완료 차임
+                    const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                    synth.volume.value = -10;
+                    const now = Tone.now();
+                    synth.triggerAttackRelease('C5', '16n', now);
+                    synth.triggerAttackRelease('G5', '8n', now + 0.09);
+                } else if (type === 'tick') {
+                    // 추첨 드럼롤/슬롯 틱 사운드
+                    const synth = new Tone.MembraneSynth({
+                        pitchDecay: 0.03,
+                        octaves: 3,
+                        envelope: { attack: 0.005, decay: 0.08, sustain: 0, release: 0.05 }
+                    }).toDestination();
+                    synth.volume.value = -14;
+                    const notes = ['C3', 'D3', 'E3', 'G3'];
+                    const randomNote = notes[Math.floor(Math.random() * notes.length)];
+                    synth.triggerAttackRelease(randomNote, '32n');
+                } else if (type === 'fanfare') {
+                    // 기호 확정 축하 팡파레
+                    const synth = new Tone.PolySynth(Tone.Synth, {
+                        oscillator: { type: 'triangle' },
+                        envelope: { attack: 0.02, decay: 0.25, sustain: 0.2, release: 0.6 }
+                    }).toDestination();
+                    synth.volume.value = -8;
+                    const now = Tone.now();
+                    synth.triggerAttackRelease(['C5', 'E5', 'G5'], '16n', now);
+                    synth.triggerAttackRelease(['D5', 'F5', 'A5'], '16n', now + 0.13);
+                    synth.triggerAttackRelease(['E5', 'G5', 'C6'], '2n', now + 0.26);
+                }
+            } catch (err) {
+                // 오디오 오류 발생 시 앱 동작에 지장이 없도록 안전하게 무시
+                console.warn('Sound playback skipped:', err);
+            }
+        }
+
+        function toggleSound() {
+            appState.soundEnabled = !appState.soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            const label = document.getElementById('soundLabel');
+            icon.textContent = appState.soundEnabled ? '🔊' : '🔇';
+            label.textContent = appState.soundEnabled ? '효과음 켜짐' : '효과음 꺼짐';
+            if (appState.soundEnabled) playSound('add');
+        }
+
+        /**
+         * =====================================================================
+         * 3. 공정 무작위 셔플 알고리즘 (Web Crypto API + Fisher-Yates + Rejection Sampling)
+         * 모듈로 편향(Modulo Bias)을 제거하여 모든 순열이 수학적으로 완벽히 동일한 확률을 가짐
+         * =====================================================================
+         */
+        function getUnbiasedRandomInt(maxExclusive) {
+            if (maxExclusive <= 1) return 0;
+            if (window.crypto && window.crypto.getRandomValues) {
+                const maxUint32 = 0xFFFFFFFF;
+                const limit = maxUint32 - ((maxUint32 + 1) % maxExclusive);
+                const randomBuffer = new Uint32Array(1);
+                let randomValue;
+                do {
+                    window.crypto.getRandomValues(randomBuffer);
+                    randomValue = randomBuffer[0];
+                } while (randomValue > limit);
+                return randomValue % maxExclusive;
+            }
+            // 구형 환경 대비 안전한 폴백
+            return Math.floor(Math.random() * maxExclusive);
+        }
+
+        function fairShuffle(items) {
+            const array = items.map(item => ({ ...item }));
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = getUnbiasedRandomInt(i + 1);
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        /**
+         * =====================================================================
+         * 4. 탭 전환 및 화면 렌더링
+         * =====================================================================
+         */
+        function getCurrentRoleState() {
+            return appState.roles[appState.activeTab];
+        }
+
+        function switchTab(tabKey) {
+            if (appState.isDrawing) {
+                showToast('추첨이 진행 중입니다. 잠시만 기다려 주세요!', 'warning');
+                return;
+            }
+            appState.activeTab = tabKey;
+            renderApp();
+            // 입력 단계라면 이름 입력창에 자동 포커스
+            if (getCurrentRoleState().phase === 'input') {
+                setTimeout(() => document.getElementById('nameInput')?.focus(), 50);
+            }
+        }
+
+        function renderApp() {
+            const roleKey = appState.activeTab;
+            const config = ROLE_CONFIG[roleKey];
+            const state = appState.roles[roleKey];
+
+            // 1) 탭 버튼 스타일 및 상태 텍스트 업데이트
+            ['president', 'vicePresident'].forEach(key => {
+                const btn = document.getElementById(`tab-${key}`);
+                const statusEl = document.getElementById(`tab-status-${key}`);
+                const rState = appState.roles[key];
+                const rConfig = ROLE_CONFIG[key];
+
+                const baseClasses = 'group relative flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-3xl border-2 transition-all duration-200 cursor-pointer focus:outline-none';
+                btn.className = `${baseClasses} ${key === roleKey ? rConfig.tabActiveClasses : rConfig.tabInactiveClasses}`;
+
+                let phaseLabel = '입력 중';
+                if (rState.phase === 'ready') phaseLabel = '추첨 대기';
+                if (rState.phase === 'result') phaseLabel = '추첨 완료 🎉';
+                statusEl.textContent = `후보 ${rState.candidates.length}명 · ${phaseLabel}`;
+            });
+
+            // 2) 상단 역할 배너 업데이트
+            document.getElementById('roleEmoji').textContent = config.emoji;
+            document.getElementById('roleTitle').textContent = `${config.label} 기호 추첨`;
+            document.getElementById('candidateCountBadge').textContent = `${state.candidates.length}명`;
+
+            const addBtn = document.getElementById('addCandidateBtn');
+            addBtn.className = `w-full py-3.5 px-5 rounded-2xl font-display text-lg text-white shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-1.5 ${config.accentBg}`;
+
+            // 단계별 부제목 설정
+            const subtitleEl = document.getElementById('roleSubtitle');
+            if (state.phase === 'input') {
+                subtitleEl.textContent = '후보 학생 이름을 모두 입력한 뒤 [입력 완료] 버튼을 눌러주세요.';
+            } else if (state.phase === 'ready') {
+                subtitleEl.textContent = '후보 명단을 확인하고 [기호 추첨]을 누르면 한꺼번에 공정하게 추첨됩니다.';
+            } else {
+                subtitleEl.textContent = `${config.label}들의 공정한 기호 추첨 결과입니다.`;
+            }
+
+            // 3) 단계 표시기 (1 -> 2 -> 3) 업데이트
+            const currentStep = state.phase === 'input' ? 1 : (state.phase === 'ready' ? 2 : 3);
+            [1, 2, 3].forEach(stepNum => {
+                const badge = document.getElementById(`step-badge-${stepNum}`);
+                const numCircle = badge.querySelector('span:first-child');
+                if (stepNum === currentStep) {
+                    badge.className = `flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all ${config.stepActiveBg}`;
+                    numCircle.className = `w-5 h-5 rounded-full flex items-center justify-center text-xs font-black ${config.stepBadgeNumBg}`;
+                } else if (stepNum < currentStep) {
+                    badge.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-slate-200/80 text-slate-700 transition-all';
+                    numCircle.className = 'w-5 h-5 rounded-full flex items-center justify-center text-xs bg-slate-600 text-white';
+                } else {
+                    badge.className = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-white text-slate-400 border border-slate-200 transition-all';
+                    numCircle.className = 'w-5 h-5 rounded-full flex items-center justify-center text-xs bg-slate-100 text-slate-400';
+                }
+            });
+
+            // 4) 단계별 섹션 표시 전환
+            document.getElementById('section-input').classList.toggle('hidden', state.phase !== 'input' || appState.isDrawing);
+            document.getElementById('section-ready').classList.toggle('hidden', state.phase !== 'ready' || appState.isDrawing);
+            document.getElementById('section-drawing').classList.toggle('hidden', !appState.isDrawing);
+            document.getElementById('section-result').classList.toggle('hidden', state.phase !== 'result' || appState.isDrawing);
+
+            // 각 섹션 내용 렌더링
+            if (state.phase === 'input') renderInputList();
+            if (state.phase === 'ready') renderReadyGrid();
+            if (state.phase === 'result') renderResultGrid();
+        }
+
+        /**
+         * =====================================================================
+         * 5. STEP 1: 후보 추가 / 삭제 / 일괄 추가 / 입력 완료
+         * =====================================================================
+         */
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function handleAddCandidate(event) {
+            event.preventDefault();
+            const nameInput = document.getElementById('nameInput');
+            const classInput = document.getElementById('classInput');
+            const rawName = nameInput.value.trim();
+            const rawClass = classInput.value.trim();
+
+            if (!rawName) {
+                showToast('후보 학생 이름을 입력해 주세요!', 'warning');
+                nameInput.focus();
+                return;
+            }
+
+            const state = getCurrentRoleState();
+            const isDuplicate = state.candidates.some(
+                c => c.name === rawName && c.classInfo === rawClass
+            );
+
+            if (isDuplicate) {
+                showToast('같은 이름의 후보가 이미 있어요! 동명이인이라면 학년-반을 함께 적어 주세요.', 'warning');
+                classInput.focus();
+                return;
+            }
+
+            state.candidates.push({
+                id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                name: rawName,
+                classInfo: rawClass
+            });
+
+            nameInput.value = '';
+            classInput.value = '';
+            nameInput.focus();
+            playSound('add');
+            renderApp();
+        }
+
+        function toggleBulkInput() {
+            const box = document.getElementById('bulkInputBox');
+            box.classList.toggle('hidden');
+            if (!box.classList.contains('hidden')) {
+                document.getElementById('bulkTextarea').focus();
+            }
+        }
+
+        function handleBulkAdd() {
+            const textarea = document.getElementById('bulkTextarea');
+            const rawText = textarea.value.trim();
+            if (!rawText) {
+                showToast('붙여넣을 학생 이름을 입력해 주세요.', 'warning');
+                return;
+            }
+
+            // 쉼표 또는 줄바꿈 기준으로 분리
+            const entries = rawText
+                .split(/[\n,]+/)
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            if (entries.length === 0) {
+                showToast('유효한 이름이 없습니다.', 'warning');
+                return;
+            }
+
+            const state = getCurrentRoleState();
+            let addedCount = 0;
+
+            entries.forEach(entry => {
+                // "6-1 김하늘" 처럼 공백으로 구분된 경우 자동 분리 지원
+                let classInfo = '';
+                let name = entry;
+                const match = entry.match(/^([0-9]+-[0-9]+|[0-9]+학년\s*[0-9]+반)\s+(.+)$/);
+                if (match) {
+                    classInfo = match[1].trim();
+                    name = match[2].trim();
+                }
+
+                const exists = state.candidates.some(c => c.name === name && c.classInfo === classInfo);
+                if (!exists && name) {
+                    state.candidates.push({
+                        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${addedCount}`,
+                        name: name.slice(0, 20),
+                        classInfo: classInfo.slice(0, 10)
+                    });
+                    addedCount++;
+                }
+            });
+
+            textarea.value = '';
+            document.getElementById('bulkInputBox').classList.add('hidden');
+
+            if (addedCount > 0) {
+                playSound('add');
+                showToast(`${addedCount}명의 후보가 추가되었습니다!`, 'success');
+                renderApp();
+            } else {
+                showToast('이미 등록된 후보들입니다.', 'warning');
+            }
+        }
+
+        function removeCandidate(id) {
+            const state = getCurrentRoleState();
+            state.candidates = state.candidates.filter(c => c.id !== id);
+            renderApp();
+        }
+
+        function confirmClearCandidates() {
+            const config = ROLE_CONFIG[appState.activeTab];
+            openConfirmModal({
+                icon: '🧹',
+                title: '명단을 모두 비울까요?',
+                message: `입력된 ${config.label} 명단이 모두 삭제됩니다.`,
+                okText: '모두 지우기',
+                okStyle: 'bg-rose-500 hover:bg-rose-600',
+                onConfirm: () => {
+                    const state = getCurrentRoleState();
+                    state.candidates = [];
+                    renderApp();
+                    showToast('후보 명단을 모두 지웠습니다.', 'info');
+                }
+            });
+        }
+
+        function renderInputList() {
+            const state = getCurrentRoleState();
+            const listEl = document.getElementById('candidateList');
+            const emptyEl = document.getElementById('emptyCandidateState');
+            const clearBtn = document.getElementById('clearAllInputBtn');
+            const completeBtn = document.getElementById('completeInputBtn');
+            const completeHint = document.getElementById('completeHint');
+
+            const count = state.candidates.length;
+            emptyEl.classList.toggle('hidden', count > 0);
+            clearBtn.classList.toggle('hidden', count === 0);
+            completeBtn.disabled = count === 0;
+
+            if (count === 0) {
+                completeHint.innerHTML = '후보 이름을 <strong>1명 이상</strong> 입력하면 입력 완료를 누를 수 있어요.';
+            } else if (count === 1) {
+                completeHint.innerHTML = '현재 <strong>1명</strong> 입력됨 · 단독 후보이거나, 추가 후보가 있다면 더 입력해 주세요.';
+            } else {
+                completeHint.innerHTML = `총 <strong>${count}명</strong>의 후보가 준비되었습니다! 모두 입력했다면 <strong>입력 완료</strong>를 눌러주세요.`;
+            }
+
+            listEl.innerHTML = state.candidates.map((candidate, idx) => `
+                <li class="flex items-center justify-between gap-2 p-3.5 rounded-2xl bg-white border-2 border-slate-100 hover:border-sky-200 shadow-sm transition-all animate-pop-in">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="shrink-0 w-8 h-8 rounded-xl bg-amber-100 text-amber-800 font-display text-base flex items-center justify-center">
+                            ${idx + 1}
+                        </span>
+                        <div class="min-w-0">
+                            <div class="font-bold text-slate-800 text-base truncate">${escapeHtml(candidate.name)}</div>
+                            ${candidate.classInfo ? `<div class="text-xs font-bold text-sky-600">${escapeHtml(candidate.classInfo)}</div>` : ''}
+                        </div>
+                    </div>
+                    <button type="button" onclick="removeCandidate('${candidate.id}')"
+                        class="shrink-0 w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-all"
+                        aria-label="${escapeHtml(candidate.name)} 후보 삭제" title="삭제">
+                        ✕
+                    </button>
+                </li>
+            `).join('');
+        }
+
+        function handleCompleteInput() {
+            const state = getCurrentRoleState();
+            if (state.candidates.length === 0) {
+                showToast('후보 학생 이름을 먼저 입력해 주세요!', 'warning');
+                return;
+            }
+            state.phase = 'ready';
+            playSound('complete');
+            renderApp();
+        }
+
+        /**
+         * =====================================================================
+         * 6. STEP 2: 입력 완료 확인 및 기호 추첨 시작
+         * =====================================================================
+         */
+        function handleEditCandidates() {
+            const state = getCurrentRoleState();
+            state.phase = 'input';
+            renderApp();
+            setTimeout(() => document.getElementById('nameInput')?.focus(), 50);
+        }
+
+        function renderReadyGrid() {
+            const state = getCurrentRoleState();
+            const grid = document.getElementById('readyCandidateGrid');
+            grid.innerHTML = state.candidates.map((candidate, idx) => `
+                <div class="p-4 rounded-2xl bg-slate-50 border-2 border-slate-200/80 text-center flex flex-col items-center justify-center gap-1">
+                    <span class="px-2.5 py-0.5 rounded-full bg-white text-slate-500 text-xs font-bold border border-slate-200">
+                        후보 ${idx + 1}
+                    </span>
+                    <div class="font-display text-xl text-slate-800 mt-1 break-keep">${escapeHtml(candidate.name)}</div>
+                    ${candidate.classInfo ? `<div class="text-xs font-bold text-sky-600">${escapeHtml(candidate.classInfo)}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function startFairDraw() {
+            const state = getCurrentRoleState();
+            if (state.candidates.length === 0 || appState.isDrawing) return;
+
+            appState.isDrawing = true;
+            renderApp();
+
+            // 최종 공정 추첨 결과 미리 계산 (편향 없는 Fisher-Yates)
+            const shuffled = fairShuffle(state.candidates);
+            const finalResults = shuffled.map((candidate, index) => ({
+                ballotNumber: index + 1,
+                name: candidate.name,
+                classInfo: candidate.classInfo
+            }));
+
+            // 추첨 중 두근두근 셔플 애니메이션 렌더링
+            const drawingGrid = document.getElementById('drawingGrid');
+            const total = state.candidates.length;
+
+            const renderShuffleFrame = () => {
+                const tempShuffled = fairShuffle(state.candidates);
+                drawingGrid.innerHTML = tempShuffled.map((cand, idx) => {
+                    const color = BALLOT_PALETTE[idx % BALLOT_PALETTE.length];
+                    return `
+                        <div class="p-5 rounded-3xl border-2 ${color.border} ${color.soft} flex items-center gap-4 animate-shuffle-pulse">
+                            <div class="shrink-0 w-14 h-14 rounded-2xl ${color.bg} text-white font-display text-2xl flex items-center justify-center shadow-md">
+                                ${idx + 1}번
+                            </div>
+                            <div class="text-left min-w-0">
+                                <div class="text-xs font-bold ${color.text}">추첨 중...</div>
+                                <div class="font-display text-2xl text-slate-800 truncate">${escapeHtml(cand.name)}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                playSound('tick');
+            };
+
+            // 약 1.9초 동안 빠르게 셔플 애니메이션 진행 후 한꺼번에 공개
+            renderShuffleFrame();
+            let tickCount = 0;
+            const maxTicks = total === 1 ? 6 : 14;
+
+            drawingIntervalId = setInterval(() => {
+                tickCount++;
+                if (tickCount >= maxTicks) {
+                    clearInterval(drawingIntervalId);
+                    drawingIntervalId = null;
+
+                    // 결과 확정 저장
+                    state.results = finalResults;
+                    state.drawnAt = formatKoreanDateTime(new Date());
+                    state.phase = 'result';
+                    appState.isDrawing = false;
+
+                    renderApp();
+                    playSound('fanfare');
+                    launchConfetti();
+                } else {
+                    renderShuffleFrame();
+                }
+            }, 130);
+        }
+
+        /**
+         * =====================================================================
+         * 7. STEP 3: 한눈에 보는 기호 추첨 결과 렌더링 & 유틸리티
+         * =====================================================================
+         */
+        function formatKoreanDateTime(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            const hh = String(date.getHours()).padStart(2, '0');
+            const mm = String(date.getMinutes()).padStart(2, '0');
+            const ss = String(date.getSeconds()).padStart(2, '0');
+            return `추첨 일시: ${y}년 ${m}월 ${d}일 ${hh}:${mm}:${ss}`;
+        }
+
+        function renderResultGrid() {
+            const config = ROLE_CONFIG[appState.activeTab];
+            const state = getCurrentRoleState();
+
+            document.getElementById('resultHeading').textContent = `${config.label} 기호 확정!`;
+            document.getElementById('drawTimestamp').textContent = state.drawnAt || '';
+
+            const grid = document.getElementById('resultGrid');
+            grid.innerHTML = state.results.map((item, idx) => {
+                const color = BALLOT_PALETTE[idx % BALLOT_PALETTE.length];
+                const delayMs = Math.min(idx * 55, 500);
+                return `
+                    <article style="animation-delay: ${delayMs}ms"
+                        class="relative overflow-hidden rounded-3xl border-2 ${color.border} bg-white shadow-md hover:shadow-lg transition-all p-5 flex items-center gap-4 animate-pop-in opacity-0">
+                        <!-- 좌측 상단 은은한 장식 -->
+                        <div class="absolute -right-5 -bottom-5 w-20 h-20 rounded-full ${color.soft} pointer-events-none"></div>
+                        
+                        <!-- 기호 배지 -->
+                        <div class="shrink-0 w-20 h-20 rounded-2xl ${color.bg} text-white flex flex-col items-center justify-center shadow-md ring-4 ${color.ring}">
+                            <span class="text-xs font-bold opacity-90 leading-none mb-0.5">기호</span>
+                            <span class="font-display text-3xl sm:text-4xl leading-none">${item.ballotNumber}번</span>
+                        </div>
+                        
+                        <!-- 후보 정보 -->
+                        <div class="relative z-10 min-w-0 flex-1">
+                            <div class="inline-block px-2.5 py-0.5 rounded-full ${color.soft} ${color.text} text-xs font-bold mb-1">
+                                ${config.shortLabel} 후보
+                            </div>
+                            <h4 class="font-display text-2xl sm:text-3xl text-slate-800 break-keep leading-tight">
+                                ${escapeHtml(item.name)}
+                            </h4>
+                            ${item.classInfo ? `<p class="text-sm font-bold text-slate-500 mt-0.5">${escapeHtml(item.classInfo)}</p>` : ''}
+                        </div>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        function confirmRedraw() {
+            const config = ROLE_CONFIG[appState.activeTab];
+            openConfirmModal({
+                icon: '🎲',
+                title: '기호를 다시 추첨할까요?',
+                message: `현재 확정된 ${config.label} 기호 결과가 사라지고, 공정하게 새로 추첨합니다.`,
+                okText: '다시 추첨하기',
+                okStyle: 'bg-amber-500 hover:bg-amber-600',
+                onConfirm: () => {
+                    startFairDraw();
+                }
+            });
+        }
+
+        function confirmBackToEdit() {
+            const config = ROLE_CONFIG[appState.activeTab];
+            openConfirmModal({
+                icon: '✏️',
+                title: '후보 명단을 수정할까요?',
+                message: `${config.label} 입력 화면으로 돌아갑니다. (기존 추첨 결과는 초기화됩니다.)`,
+                okText: '수정하러 가기',
+                okStyle: 'bg-rose-500 hover:bg-rose-600',
+                onConfirm: () => {
+                    const state = getCurrentRoleState();
+                    state.results = [];
+                    state.drawnAt = null;
+                    state.phase = 'input';
+                    renderApp();
+                }
+            });
+        }
+
+        /**
+         * =====================================================================
+         * 8. 클립보드 복사 (iFrame 호환 document.execCommand('copy') 사용)
+         * =====================================================================
+         */
+        function copyTextToClipboard(text) {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                if (ok) {
+                    showToast('추첨 결과가 클립보드에 복사되었습니다!', 'success');
+                } else {
+                    showToast('복사에 실패했습니다. 직접 드래그하여 복사해 주세요.', 'warning');
+                }
+            } catch (err) {
+                console.error('Copy error:', err);
+                showToast('복사 기능을 사용할 수 없는 환경입니다.', 'warning');
+            }
+        }
+
+        function formatRoleResultText(roleKey) {
+            const config = ROLE_CONFIG[roleKey];
+            const state = appState.roles[roleKey];
+            if (state.phase !== 'result' || state.results.length === 0) {
+                return `[${config.label}] 아직 추첨이 완료되지 않았습니다.`;
+            }
+            const lines = [
+                `[${config.label} 기호 추첨 결과]`,
+                `(${state.drawnAt})`,
+                ...state.results.map(r => `기호 ${r.ballotNumber}번 : ${r.classInfo ? `${r.classInfo} ` : ''}${r.name}`)
+            ];
+            return lines.join('\n');
+        }
+
+        function copyCurrentResults() {
+            const text = formatRoleResultText(appState.activeTab);
+            copyTextToClipboard(text);
+        }
+
+        function copyAllSummaryResults() {
+            const text = [
+                '=== 초등학교 전교 임원 선거 기호 추첨 결과 ===',
+                '',
+                formatRoleResultText('president'),
+                '',
+                formatRoleResultText('vicePresident')
+            ].join('\n');
+            copyTextToClipboard(text);
+        }
+
+        /**
+         * =====================================================================
+         * 8-1. PDF 파일 생성 및 다운로드 (html2canvas + jsPDF)
+         * 한글 폰트와 초등학교 선거 디자인이 깨지지 않도록 A4 전용 양식으로 렌더링 후 저장
+         * =====================================================================
+         */
+        const PDF_COLOR_HEX = [
+            { badge: '#f43f5e', soft: '#fff1f2', border: '#fecdd3', text: '#e11d48' },
+            { badge: '#0ea5e9', soft: '#f0f9ff', border: '#bae6fd', text: '#0284c7' },
+            { badge: '#f59e0b', soft: '#fffbeb', border: '#fde68a', text: '#b45309' },
+            { badge: '#10b981', soft: '#ecfdf5', border: '#a7f3d0', text: '#059669' },
+            { badge: '#8b5cf6', soft: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed' },
+            { badge: '#f97316', soft: '#fff7ed', border: '#fed7aa', text: '#ea580c' },
+            { badge: '#14b8a6', soft: '#f0fdfa', border: '#99f6e4', text: '#0d9488' },
+            { badge: '#ec4899', soft: '#fdf2f8', border: '#fbcfe8', text: '#db2777' },
+            { badge: '#6366f1', soft: '#eef2ff', border: '#c7d2fe', text: '#4f46e5' },
+            { badge: '#65a30d', soft: '#f7fee7', border: '#d9f99d', text: '#4d7c0f' }
+        ];
+
+        // 파일명용 날짜 문자열 생성 (YYYYMMDD)
+        function getCompactDateString() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}${m}${d}`;
+        }
+
+        // 특정 선거 부문(회장 또는 부회장)의 PDF용 HTML 섹션 마크업 생성
+        function buildPdfRoleSectionHtml(roleKey) {
+            const config = ROLE_CONFIG[roleKey];
+            const state = appState.roles[roleKey];
+            const isPresident = roleKey === 'president';
+            const headerBg = isPresident ? '#e0f2fe' : '#d1fae5';
+            const headerBorder = isPresident ? '#7dd3fc' : '#6ee7b7';
+            const headerText = isPresident ? '#0c4a6e' : '#065f46';
+
+            if (state.phase !== 'result' || state.results.length === 0) {
+                return `
+                    <div style="margin-bottom: 24px; border: 2px dashed #cbd5e1; border-radius: 18px; padding: 20px; background: #f8fafc;">
+                        <div style="display: inline-block; padding: 6px 14px; border-radius: 12px; background: ${headerBg}; border: 1.5px solid ${headerBorder}; color: ${headerText}; font-family: 'Jua', sans-serif; font-size: 20px; margin-bottom: 10px;">
+                            ${config.emoji} ${config.label}
+                        </div>
+                        <p style="margin: 6px 0 0 0; color: #64748b; font-size: 14px; font-weight: 600;">아직 기호 추첨이 완료되지 않았습니다.</p>
+                    </div>
+                `;
+            }
+
+            const cardsHtml = state.results.map((item, idx) => {
+                const c = PDF_COLOR_HEX[idx % PDF_COLOR_HEX.length];
+                return `
+                    <div style="display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 18px; border: 2px solid ${c.border}; background: #ffffff; box-sizing: border-box;">
+                        <div style="flex-shrink: 0; width: 74px; height: 74px; border-radius: 16px; background: ${c.badge}; color: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+                            <div style="font-size: 11px; font-weight: 700; opacity: 0.92; line-height: 1.1; margin-bottom: 2px;">기호</div>
+                            <div style="font-family: 'Jua', sans-serif; font-size: 28px; line-height: 1;">${item.ballotNumber}번</div>
+                        </div>
+                        <div style="min-width: 0; flex: 1;">
+                            <div style="display: inline-block; padding: 2px 10px; border-radius: 999px; background: ${c.soft}; color: ${c.text}; font-size: 11px; font-weight: 700; margin-bottom: 4px;">
+                                ${config.shortLabel} 후보
+                            </div>
+                            <div style="font-family: 'Jua', sans-serif; font-size: 25px; color: #1e293b; line-height: 1.2; word-break: keep-all;">
+                                ${escapeHtml(item.name)}
+                            </div>
+                            ${item.classInfo ? `<div style="font-size: 13px; font-weight: 700; color: #64748b; margin-top: 2px;">${escapeHtml(item.classInfo)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div style="margin-bottom: 26px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-radius: 16px; background: ${headerBg}; border: 2px solid ${headerBorder}; margin-bottom: 14px;">
+                        <div style="font-family: 'Jua', sans-serif; font-size: 22px; color: ${headerText};">
+                            ${config.emoji} ${config.label} 기호 확정 명단 (총 ${state.results.length}명)
+                        </div>
+                        <div style="font-size: 12px; font-weight: 700; color: ${headerText}; opacity: 0.85;">
+                            ${escapeHtml(state.drawnAt || '')}
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+                        ${cardsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 공통 PDF 렌더링 및 파일 저장 함수 (후보가 많으면 여러 A4 페이지로 자동 분할)
+        async function exportElectionPdf({ title, subtitle, bodyHtml, fileName, triggerBtn, loadingText }) {
+            if (typeof html2canvas === 'undefined' || !window.jspdf || !window.jspdf.jsPDF) {
+                showToast('PDF 생성 도구를 불러오지 못해 브라우저 인쇄 창을 엽니다.', 'warning');
+                window.print();
+                return;
+            }
+
+            const originalHtml = triggerBtn ? triggerBtn.innerHTML : '';
+            if (triggerBtn) {
+                triggerBtn.disabled = true;
+                triggerBtn.innerHTML = `<span>⏳</span><span>${loadingText || 'PDF 생성 중...'}</span>`;
+            }
+
+            // 화면 밖에 A4 폭(794px) 전용 인쇄 레이아웃 컨테이너 생성
+            const container = document.createElement('div');
+            container.style.position = 'fixed';
+            container.style.left = '-10000px';
+            container.style.top = '0';
+            container.style.width = '794px';
+            container.style.backgroundColor = '#ffffff';
+            container.style.padding = '42px 44px';
+            container.style.boxSizing = 'border-box';
+            container.style.fontFamily = "'Noto Sans KR', sans-serif";
+            container.style.color = '#1e293b';
+
+            container.innerHTML = `
+                <!-- 상단 컬러 띠 -->
+                <div style="height: 10px; border-radius: 999px; background: linear-gradient(90deg, #38bdf8, #fbbf24, #fb7185, #34d399); margin-bottom: 24px;"></div>
+                
+                <!-- 문서 헤더 -->
+                <div style="text-align: center; padding-bottom: 20px; margin-bottom: 24px; border-bottom: 2px dashed #e2e8f0;">
+                    <div style="display: inline-block; padding: 5px 14px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 13px; font-weight: 700; margin-bottom: 10px;">
+                        ✨ 공정한 초등학교 전교 임원 선거 ✨
+                    </div>
+                    <h1 style="margin: 0; font-family: 'Jua', sans-serif; font-size: 36px; color: #0f172a; letter-spacing: 0.5px;">
+                        ${escapeHtml(title)}
+                    </h1>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; color: #64748b; font-weight: 600;">
+                        ${escapeHtml(subtitle)}
+                    </p>
+                </div>
+
+                <!-- 기호 추첨 결과 본문 -->
+                <div>${bodyHtml}</div>
+
+                <!-- 하단 공정성 인증 푸터 -->
+                <div style="margin-top: 28px; padding-top: 16px; border-top: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8; font-weight: 600;">
+                    <span>✔️ Web Crypto API &amp; Fisher-Yates 무작위 알고리즘으로 공정하게 추첨되었습니다.</span>
+                    <span>출력 일시: ${escapeHtml(formatKoreanDateTime(new Date()).replace('추첨 일시: ', ''))}</span>
+                </div>
+            `;
+
+            document.body.appendChild(container);
+
+            try {
+                // 웹폰트 로딩이 완료될 때까지 대기하여 한글 깨짐 방지
+                if (document.fonts && document.fonts.ready) {
+                    await document.fonts.ready;
+                }
+
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const pageWidth = pdf.internal.pageSize.getWidth();   // 210mm
+                const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = pageWidth;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                let heightLeft = imgHeight;
+                let positionY = 0;
+
+                // 첫 페이지 추가
+                pdf.addImage(imgData, 'PNG', 0, positionY, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                // 후보가 많아 A4 1장을 넘길 경우 다음 페이지 자동 추가
+                while (heightLeft > 1) {
+                    positionY -= pageHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, positionY, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(fileName);
+                showToast('결과표가 PDF 파일로 다운로드되었습니다!', 'success');
+            } catch (err) {
+                console.error('PDF generation failed:', err);
+                showToast('PDF 파일 생성 중 오류가 발생했습니다. 다시 시도해 주세요.', 'warning');
+            } finally {
+                if (container.parentNode) {
+                    container.parentNode.removeChild(container);
+                }
+                if (triggerBtn) {
+                    triggerBtn.disabled = false;
+                    triggerBtn.innerHTML = originalHtml;
+                }
+            }
+        }
+
+        // 현재 선택된 탭(전교 회장 또는 전교 부회장) 결과표 PDF 다운로드
+        function downloadCurrentResultPDF() {
+            const roleKey = appState.activeTab;
+            const config = ROLE_CONFIG[roleKey];
+            const state = appState.roles[roleKey];
+
+            if (state.phase !== 'result' || state.results.length === 0) {
+                showToast('먼저 기호 추첨을 완료해 주세요!', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('downloadPdfBtn');
+            const safeRoleName = config.shortLabel.replace(/\s+/g, '_');
+            exportElectionPdf({
+                title: `${config.label} 기호 추첨 결과표`,
+                subtitle: `${state.drawnAt || ''} · 총 ${state.results.length}명`,
+                bodyHtml: buildPdfRoleSectionHtml(roleKey),
+                fileName: `${safeRoleName}_기호추첨결과_${getCompactDateString()}.pdf`,
+                triggerBtn: btn,
+                loadingText: 'PDF 저장 중...'
+            });
+        }
+
+        // 전체 결과표 모달에서 전교 회장 + 전교 부회장 통합 PDF 다운로드
+        function downloadAllSummaryPDF() {
+            const hasPresident = appState.roles.president.phase === 'result' && appState.roles.president.results.length > 0;
+            const hasVice = appState.roles.vicePresident.phase === 'result' && appState.roles.vicePresident.results.length > 0;
+
+            if (!hasPresident && !hasVice) {
+                showToast('아직 추첨이 완료된 결과가 없습니다.', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('downloadAllPdfBtn');
+            exportElectionPdf({
+                title: '전교 임원 선거 전체 기호표',
+                subtitle: '전교 회장 및 전교 부회장 후보 기호 추첨 확정 명단',
+                bodyHtml: buildPdfRoleSectionHtml('president') + buildPdfRoleSectionHtml('vicePresident'),
+                fileName: `전교임원선거_전체기호표_${getCompactDateString()}.pdf`,
+                triggerBtn: btn,
+                loadingText: '전체 PDF 저장 중...'
+            });
+        }
+
+        /**
+         * =====================================================================
+         * 9. 전체 결과 모아보기 모달 (전교 회장 + 전교 부회장)
+         * =====================================================================
+         */
+        function openSummaryModal() {
+            const body = document.getElementById('summaryModalBody');
+            body.innerHTML = ['president', 'vicePresident'].map(roleKey => {
+                const config = ROLE_CONFIG[roleKey];
+                const state = appState.roles[roleKey];
+                const headerColor = roleKey === 'president'
+                    ? 'bg-sky-50 border-sky-200 text-sky-800'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-800';
+
+                if (state.phase !== 'result' || state.results.length === 0) {
+                    return `
+                        <div class="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-5 flex flex-col">
+                            <div class="px-3 py-2 rounded-xl border ${headerColor} font-display text-lg mb-4 flex items-center gap-1.5">
+                                <span>${config.emoji}</span>
+                                <span>${config.label}</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center justify-center py-6 text-center text-slate-400">
+                                <span class="text-3xl mb-2">⏳</span>
+                                <p class="text-sm font-bold text-slate-500">아직 기호 추첨 전입니다</p>
+                                <p class="text-xs mt-1">현재 등록된 후보: ${state.candidates.length}명</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="rounded-2xl border-2 border-slate-100 bg-white p-4 shadow-sm flex flex-col">
+                        <div class="px-3 py-2 rounded-xl border ${headerColor} font-display text-lg mb-3 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5"><span>${config.emoji}</span><span>${config.label}</span></span>
+                            <span class="text-xs font-sans font-bold opacity-80">${state.results.length}명</span>
+                        </div>
+                        <ul class="space-y-2">
+                            ${state.results.map((item, idx) => {
+                                const color = BALLOT_PALETTE[idx % BALLOT_PALETTE.length];
+                                return `
+                                    <li class="flex items-center gap-3 p-2.5 rounded-xl ${color.soft} border ${color.border}">
+                                        <span class="shrink-0 px-2.5 py-1 rounded-lg ${color.bg} text-white font-display text-sm">
+                                            기호 ${item.ballotNumber}번
+                                        </span>
+                                        <span class="font-bold text-slate-800 text-base truncate">${escapeHtml(item.name)}</span>
+                                        ${item.classInfo ? `<span class="text-xs font-bold text-slate-500 ml-auto shrink-0">${escapeHtml(item.classInfo)}</span>` : ''}
+                                    </li>
+                                `;
+                            }).join('')}
+                        </ul>
+                        <p class="text-[11px] text-slate-400 mt-3 text-right">${state.drawnAt}</p>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('summaryModal').classList.remove('hidden');
+        }
+
+        function closeSummaryModal() {
+            document.getElementById('summaryModal').classList.add('hidden');
+        }
+
+        /**
+         * =====================================================================
+         * 10. 커스텀 확인 모달 및 토스트 알림
+         * =====================================================================
+         */
+        function openConfirmModal({ icon, title, message, okText, okStyle, onConfirm }) {
+            document.getElementById('confirmModalIcon').textContent = icon || '🤔';
+            document.getElementById('confirmModalTitle').textContent = title || '확인';
+            document.getElementById('confirmModalMessage').textContent = message || '';
+            const okBtn = document.getElementById('confirmModalOkBtn');
+            okBtn.textContent = okText || '확인';
+            okBtn.className = `py-3 px-4 rounded-2xl text-white font-bold text-sm transition-all shadow-md active:scale-95 ${okStyle || 'bg-sky-500 hover:bg-sky-600'}`;
+            pendingConfirmAction = onConfirm;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            pendingConfirmAction = null;
+        }
+
+        document.getElementById('confirmModalOkBtn').addEventListener('click', () => {
+            const action = pendingConfirmAction;
+            closeConfirmModal();
+            if (typeof action === 'function') action();
+        });
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const styles = {
+                success: 'bg-emerald-600 text-white',
+                warning: 'bg-amber-500 text-white',
+                info: 'bg-slate-800 text-white'
+            };
+            const icons = { success: '✅', warning: '⚠️', info: '💡' };
+
+            toast.className = `px-5 py-3 rounded-2xl shadow-xl font-bold text-sm flex items-center gap-2 animate-pop-in ${styles[type] || styles.info}`;
+            toast.innerHTML = `<span>${icons[type] || '💡'}</span><span>${escapeHtml(message)}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+
+        /**
+         * =====================================================================
+         * 11. 축하 색종이(Confetti) 반응형 캔버스 애니메이션
+         * =====================================================================
+         */
+        const confettiCanvas = document.getElementById('confettiCanvas');
+        const confettiCtx = confettiCanvas.getContext('2d');
+        let confettiParticles = [];
+        let confettiAnimId = null;
+
+        function resizeConfettiCanvas() {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeConfettiCanvas);
+
+        function launchConfetti() {
+            resizeConfettiCanvas();
+            const colors = ['#38BDF8', '#FACC15', '#FB7185', '#34D399', '#A78BFA', '#FB923C'];
+            confettiParticles = [];
+
+            for (let i = 0; i < 110; i++) {
+                confettiParticles.push({
+                    x: Math.random() * confettiCanvas.width,
+                    y: -20 - Math.random() * confettiCanvas.height * 0.4,
+                    size: 7 + Math.random() * 7,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    speedY: 2.5 + Math.random() * 4,
+                    speedX: (Math.random() - 0.5) * 3.5,
+                    rotation: Math.random() * 360,
+                    rotationSpeed: (Math.random() - 0.5) * 10,
+                    opacity: 1
+                });
+            }
+
+            if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            let activeCount = 0;
+
+            confettiParticles.forEach(p => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+                p.rotation += p.rotationSpeed;
+                if (p.y > confettiCanvas.height * 0.75) {
+                    p.opacity -= 0.02;
+                }
+                if (p.opacity > 0 && p.y < confettiCanvas.height + 30) {
+                    activeCount++;
+                    confettiCtx.save();
+                    confettiCtx.translate(p.x, p.y);
+                    confettiCtx.rotate((p.rotation * Math.PI) / 180);
+                    confettiCtx.globalAlpha = Math.max(0, p.opacity);
+                    confettiCtx.fillStyle = p.color;
+                    confettiCtx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size * 0.55);
+                    confettiCtx.restore();
+                }
+            });
+
+            if (activeCount > 0) {
+                confettiAnimId = requestAnimationFrame(animateConfetti);
+            } else {
+                confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+                confettiAnimId = null;
+            }
+        }
+
+        /**
+         * =====================================================================
+         * 12. 초기화
+         * =====================================================================
+         */
+        window.onload = function () {
+            resizeConfettiCanvas();
+            renderApp();
+            document.getElementById('nameInput')?.focus();
+        };
+    </script>
+</body>
+</html>
